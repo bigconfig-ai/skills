@@ -1,6 +1,6 @@
 ---
 name: create-py-bigconfig-package
-description: Scaffold a new minimal, launcher-conformant Python BigConfig package from bundled templates. Use when asked to create, bootstrap, or scaffold a new BigConfig package in Python — one that depends on the big-config SDK, exposes validate/build verbs, and runs via the bc-pkg launcher.
+description: Scaffold a new minimal, launcher-conformant Python BigConfig package from bundled templates. Use when asked to create, bootstrap, or scaffold a new BigConfig package in Python — one that depends on the big-config SDK, exposes package validate/describe/build/create/delete lifecycle verbs, and runs via the bc-pkg launcher.
 ---
 
 # Create a Python BigConfig package
@@ -8,7 +8,8 @@ description: Scaffold a new minimal, launcher-conformant Python BigConfig packag
 This skill scaffolds a new, minimal **Python BigConfig package** from the bundled
 templates in `templates/`. The result is the smallest thing that is a real package:
 it depends only on the `big-config` SDK, renders one template through a single `hello`
-stage, exposes `validate` + `build` verbs, ships a launcher-friendly root `run`, and
+stage, exposes `package validate`, `package describe`, `package build`,
+`package create`, and `package delete`, ships a launcher-friendly root `run`, and
 tests green. The author then grows it (more params, more stages).
 
 It is the Python twin of `create-ts-bigconfig-package`; keep the three language skills
@@ -64,8 +65,9 @@ Create the target dir, then copy `templates/` into it with these renames:
 - `templates/run.tmpl`              → `run`  (then `chmod +x run`)
 - `templates/README.md.tmpl`        → `README.md`
 - `templates/src/pkg/`              → `src/<PKG_MODULE>/`  (rename the `pkg` dir; the
-  files `interop.py`, `params.py`, `validation.py`, `__init__.py`, `__main__.py`,
-  `py.typed` are verbatim, the `*.tmpl` files are filled, dropping the `.tmpl` suffix)
+  files `describe.py`, `interop.py`, `params.py`, `validation.py`, `__init__.py`,
+  `__main__.py`, `py.typed` are verbatim, the `*.tmpl` files are filled, dropping
+  the `.tmpl` suffix)
 - `templates/src/resources/tools/`  → `src/resources/<PKG_NS_PATH>/tools/`  (relocate
   under the namespace path; `greeting.txt` is verbatim)
 - `templates/tests/*.tmpl`          → `tests/*` (drop `.tmpl`)
@@ -73,8 +75,8 @@ Create the target dir, then copy `templates/` into it with these renames:
 Files that contain tokens (`*.tmpl`): `pyproject.toml`, `run`, `README.md`, `cli.py`,
 `src/<module>/options.py`, `src/<module>/tools.py`, `src/<module>/package.py`,
 `tests/test_build.py`, `tests/test_validation.py`. Files with **no** tokens (copy
-verbatim): `__init__.py`, `__main__.py`, `py.typed`, `interop.py`, `params.py`,
-`validation.py`, `greeting.txt`, `gitignore`.
+verbatim): `__init__.py`, `__main__.py`, `py.typed`, `describe.py`, `interop.py`,
+`params.py`, `validation.py`, `greeting.txt`, `gitignore`.
 
 ## Step 4 — Substitute tokens
 
@@ -93,19 +95,24 @@ In the target directory:
 uv sync
 uv run pytest -q
 uv run python run package validate          # expect: All checks passed. (exit 0)
+uv run python run package describe          # expect: prints package/profile/name summary (exit 0)
 uv run python run package build             # expect: renders .dist/<name>-<hash>/.../hello/greeting.txt
+uv run python run package create            # expect: safe demo create; renders the same hello output
+uv run python run package delete            # expect: explicit no-op success (exit 0)
 BC_PAR_NAME=REPLACE_ME uv run python run package validate   # expect: validation failed (exit 1)
 ```
 
 All of these must succeed (the override case must *fail* validation — that proves
-`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists, holds the rendered
-`greeting.txt` containing `Hello, world!`, and is git-ignored.
+`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists after `build` and
+`create`, holds the rendered `greeting.txt` containing `Hello, world!`, and is
+git-ignored.
 
 ## Step 6 — Report
 
 Print `reference/checklist.md` with each item confirmed, then tell the user how to grow
 the package (edit the profile in `options.py` + `run`, add stages in `tools.py` and the
-pipeline in `package.py`, override params with `BC_PAR_*`) and how to make it
+`build`/`create` pipelines in `package.py`, override params with `BC_PAR_*`) and how
+to make it
 `bc-pkg`-installable: push to GitHub and run
 `uvx bc-pkg <owner>/<name>@<ref> package build`, or for local dev
 `uvx bc-pkg ../<name>/python package build`.

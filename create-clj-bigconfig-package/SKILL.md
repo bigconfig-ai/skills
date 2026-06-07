@@ -1,6 +1,6 @@
 ---
 name: create-clj-bigconfig-package
-description: Scaffold a new minimal, launcher-conformant Clojure BigConfig package from bundled templates. Use when asked to create, bootstrap, or scaffold a new BigConfig package in Clojure — one that depends on the big-config SDK, exposes validate/build verbs, and runs via the bc-pkg launcher.
+description: Scaffold a new minimal, launcher-conformant Clojure BigConfig package from bundled templates. Use when asked to create, bootstrap, or scaffold a new BigConfig package in Clojure — one that depends on the big-config SDK, exposes package validate/describe/build/create/delete lifecycle verbs, and runs via the bc-pkg launcher.
 ---
 
 # Create a Clojure BigConfig package
@@ -8,7 +8,8 @@ description: Scaffold a new minimal, launcher-conformant Clojure BigConfig packa
 This skill scaffolds a new, minimal **Clojure BigConfig package** from the bundled
 templates in `templates/`. The result is the smallest thing that is a real package:
 it depends only on the `big-config` SDK, renders one template through a single `hello`
-stage, exposes `validate` + `build` verbs, ships a launcher-friendly root `run`, and
+stage, exposes `package validate`, `package describe`, `package build`,
+`package create`, and `package delete`, ships a launcher-friendly root `run`, and
 tests green. The author then grows it (more params, more stages).
 
 It is the Clojure twin of `create-ts-bigconfig-package`; keep the three language skills
@@ -94,19 +95,23 @@ In the target directory:
 ```bash
 clojure -M:test                                  # cognitect test-runner; expect 0 failures
 bb run package validate                           # expect: All checks passed. (exit 0)
+bb run package describe                           # expect: prints package/profile/name summary (exit 0)
 bb run package build                              # expect: renders .dist/<name>-<hash>/.../hello/greeting.txt
+bb run package create                             # expect: safe demo create; renders the same hello output
+bb run package delete                             # expect: explicit no-op success (exit 0)
 BC_PAR_NAME=REPLACE_ME bb run package validate    # expect: validation failed (exit 1)
 ```
 
 All of these must succeed (the override case must *fail* validation — that proves
-`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists, holds the rendered
-`greeting.txt` containing `Hello, world!`, and is git-ignored.
+`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists after `build` and
+`create`, holds the rendered `greeting.txt` containing `Hello, world!`, and is
+git-ignored.
 
 ## Step 6 — Report
 
 Print `reference/checklist.md` with each item confirmed, then tell the user how to grow
 the package (edit the profile in `options.clj` + `run`, add stages in `tools.clj` and
-the `build` pipeline + `tool-workflows` in `package.clj`, override params with
+the `build`/`create` pipelines + `tool-workflows` in `package.clj`, override params with
 `BC_PAR_*`) and how to make it `bc-pkg`-installable: push to GitHub and run
 `uvx bc-pkg <owner>/<name>@<ref> package build` / `npx bc-pkg <owner>/<name>@<ref>
 package build` (either launcher targets a Clojure package), or for local dev the local

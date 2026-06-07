@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import tempfile
@@ -7,6 +8,20 @@ PKG_DIR = Path(__file__).resolve().parent.parent
 RUN = PKG_DIR / "run"
 
 
+def run_package(step: str, cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(RUN), "package", step],
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+        env=env,
+    )
+
+
+def assert_ok(res: subprocess.CompletedProcess[str], step: str) -> None:
+    assert res.returncode == 0, f"{step} failed\nstdout:\n{res.stdout}\nstderr:\n{res.stderr}"
+
+
 def find(base: Path, name: str) -> Path | None:
     for p in base.rglob(name):
         if p.is_file():
@@ -14,17 +29,43 @@ def find(base: Path, name: str) -> Path | None:
     return None
 
 
-def test_package_build_renders_hello_template():
-    with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-") as tmp:
+def assert_greeting_rendered(cwd: Path) -> None:
+    dist = cwd / ".dist"
+    assert dist.exists()
+    greeting = find(dist, "greeting.txt")
+    assert greeting is not None, "greeting.txt should be rendered under .dist"
+    assert "Hello, world!" in greeting.read_text()
+
+
+def test_package_lifecycle_validate_describe_delete():
+    with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-") as tmp_s:
+        tmp = Path(tmp_s)
+        for step in ["validate", "describe", "delete"]:
+            assert_ok(run_package(step, tmp), step)
+
+
+def test_package_build_and_create_render_hello_template():
+    for step in ["build", "create"]:
+        with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-") as tmp_s:
+            tmp = Path(tmp_s)
+            assert_ok(run_package(step, tmp), step)
+            assert_greeting_rendered(tmp)
+
+
+def test_package_validate_fails_for_placeholder_override():
+    with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-") as tmp_s:
+        res = run_package("validate", Path(tmp_s), {**os.environ, "BC_PAR_NAME": "REPLACE_ME"})
+        assert res.returncode == 1
+        assert "Validation failed" in f"{res.stdout}\n{res.stderr}"
+
+
+def test_top_level_validate_shortcut_is_not_exposed():
+    with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-") as tmp_s:
         res = subprocess.run(
-            [sys.executable, str(RUN), "package", "build"],
-            cwd=tmp,
+            [sys.executable, str(RUN), "validate"],
+            cwd=tmp_s,
             text=True,
             capture_output=True,
         )
-        assert res.returncode == 0, f"build failed\nstdout:\n{res.stdout}\nstderr:\n{res.stderr}"
-        dist = Path(tmp) / ".dist"
-        assert dist.exists()
-        greeting = find(dist, "greeting.txt")
-        assert greeting is not None, "greeting.txt should be rendered under .dist"
-        assert "Hello, world!" in greeting.read_text()
+        assert res.returncode == 1
+        assert "Unknown command: validate" in res.stderr

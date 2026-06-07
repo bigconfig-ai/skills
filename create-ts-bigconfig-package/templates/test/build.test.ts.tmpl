@@ -1,13 +1,18 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const pkgDir = resolve(".");
+const cli = join(pkgDir, "dist/src/cli.js");
 
-function run(cmd: string, args: string[], cwd: string): void {
-  const res = spawnSync(cmd, args, { cwd, encoding: "utf8", env: process.env });
+function runRaw(cmd: string, args: string[], cwd: string, env = process.env): SpawnSyncReturns<string> {
+  return spawnSync(cmd, args, { cwd, encoding: "utf8", env });
+}
+
+function expectRun(cmd: string, args: string[], cwd: string, env = process.env): void {
+  const res = runRaw(cmd, args, cwd, env);
   expect(res.status, `${cmd} ${args.join(" ")} failed\nstdout:\n${res.stdout}\nstderr:\n${res.stderr}`).toBe(0);
 }
 
@@ -24,16 +29,55 @@ function find(base: string, name: string): string | null {
   return null;
 }
 
-describe("__PKG_NAME__ package build", () => {
-  it("renders the hello template into .dist", () => {
+function expectGreetingRendered(cwd: string): void {
+  const dist = join(cwd, ".dist");
+  expect(existsSync(dist)).toBe(true);
+  const greeting = find(dist, "greeting.txt");
+  expect(greeting, "greeting.txt should be rendered under .dist").not.toBeNull();
+  expect(readFileSync(greeting!, "utf8")).toContain("Hello, world!");
+}
+
+describe("__PKG_NAME__ package lifecycle", () => {
+  it("runs validate, describe, and delete", () => {
     const tmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-"));
     try {
-      run("node", [join(pkgDir, "dist/src/cli.js"), "package", "build"], tmp);
-      const dist = join(tmp, ".dist");
-      expect(existsSync(dist)).toBe(true);
-      const greeting = find(dist, "greeting.txt");
-      expect(greeting, "greeting.txt should be rendered under .dist").not.toBeNull();
-      expect(readFileSync(greeting!, "utf8")).toContain("Hello, world!");
+      for (const step of ["validate", "describe", "delete"]) {
+        expectRun("node", [cli, "package", step], tmp);
+      }
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("renders the hello template for build and create", () => {
+    for (const step of ["build", "create"]) {
+      const tmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-"));
+      try {
+        expectRun("node", [cli, "package", step], tmp);
+        expectGreetingRendered(tmp);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it("fails package validate when BC_PAR_NAME is REPLACE_ME", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-"));
+    try {
+      const res = runRaw("node", [cli, "package", "validate"], tmp, { ...process.env, BC_PAR_NAME: "REPLACE_ME" });
+      expect(res.status).toBe(1);
+      expect(`${res.stdout}\n${res.stderr}`).toContain("Validation failed");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("does not expose a top-level validate shortcut", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-"));
+    try {
+      const res = runRaw("node", [cli, "validate"], tmp);
+      expect(res.status).toBe(1);
+      expect(res.stderr).toContain("Unknown command: validate");
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }

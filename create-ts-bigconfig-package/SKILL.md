@@ -1,6 +1,6 @@
 ---
 name: create-ts-bigconfig-package
-description: Scaffold a new minimal, launcher-conformant TypeScript BigConfig package from bundled templates. Use when asked to create, bootstrap, or scaffold a new BigConfig package in TypeScript — one that depends on the big-config SDK, exposes validate/build verbs, and runs via the bc-pkg launcher.
+description: Scaffold a new minimal, launcher-conformant TypeScript BigConfig package from bundled templates. Use when asked to create, bootstrap, or scaffold a new BigConfig package in TypeScript — one that depends on the big-config SDK, exposes package validate/describe/build/create/delete lifecycle verbs, and runs via the bc-pkg launcher.
 ---
 
 # Create a TypeScript BigConfig package
@@ -8,7 +8,8 @@ description: Scaffold a new minimal, launcher-conformant TypeScript BigConfig pa
 This skill scaffolds a new, minimal **TypeScript BigConfig package** from the bundled
 templates in `templates/`. The result is the smallest thing that is a real package:
 it depends only on the `big-config` SDK, renders one template through a single `hello`
-stage, exposes `validate` + `build` verbs, ships a launcher-friendly root `run`, and
+stage, exposes `package validate`, `package describe`, `package build`,
+`package create`, and `package delete`, ships a launcher-friendly root `run`, and
 builds/tests green. The author then grows it (more params, more stages).
 
 Read `reference/checklist.md` for the conformance contract the output must satisfy.
@@ -61,8 +62,8 @@ Create the target dir, then copy `templates/` into it with these renames:
 - `templates/README.md.tmpl`       → `README.md`
 - `templates/src/cli.ts.tmpl`      → `src/cli.ts`
 - `templates/src/pkg/`             → `src/<PKG_NAME>/`  (rename the `pkg` dir; the
-  files `interop.ts` and `params.ts` are verbatim, the `*.tmpl` files are filled,
-  dropping the `.tmpl` suffix)
+  files `describe.ts`, `interop.ts`, `params.ts`, and `validation.ts` are verbatim,
+  the `*.tmpl` files are filled, dropping the `.tmpl` suffix)
 - `templates/src/resources/tools/` → `src/resources/<PKG_NS_PATH>/tools/`  (relocate
   under the namespace path; `greeting.txt` is verbatim)
 - `templates/test/*.tmpl`          → `test/*` (drop `.tmpl`)
@@ -70,8 +71,8 @@ Create the target dir, then copy `templates/` into it with these renames:
 Files that contain tokens (`*.tmpl`): `package.json`, `run`, `README.md`, `cli.ts`,
 `src/<name>/options.ts`, `src/<name>/tools.ts`, `src/<name>/package.ts`,
 `test/build.test.ts`, `test/validation.test.ts`. Files with **no** tokens (copy
-verbatim): `tsconfig.json`, `vitest.config.ts`, `gitignore`, `interop.ts`, `params.ts`,
-`validation.ts`, `greeting.txt`.
+verbatim): `tsconfig.json`, `vitest.config.ts`, `gitignore`, `describe.ts`,
+`interop.ts`, `params.ts`, `validation.ts`, `greeting.txt`.
 
 ## Step 4 — Substitute tokens
 
@@ -91,19 +92,24 @@ npm run build
 npm run typecheck
 npm test
 node run package validate          # expect: All checks passed. (exit 0)
+node run package describe          # expect: prints package/profile/name summary (exit 0)
 node run package build             # expect: renders .dist/<name>-<hash>/.../hello/greeting.txt
+node run package create            # expect: safe demo create; renders the same hello output
+node run package delete            # expect: explicit no-op success (exit 0)
 BC_PAR_NAME=REPLACE_ME node run package validate   # expect: validation failed (exit 1)
 ```
 
 All of these must succeed (the override case must *fail* validation — that proves
-`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists, holds the rendered
-`greeting.txt` containing `Hello, world!`, and is git-ignored.
+`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists after `build` and
+`create`, holds the rendered `greeting.txt` containing `Hello, world!`, and is
+git-ignored.
 
 ## Step 6 — Report
 
 Print `reference/checklist.md` with each item confirmed, then tell the user how to grow
 the package (edit the profile in `options.ts` + `run`, add stages in `tools.ts` and the
-pipeline in `package.ts`, override params with `BC_PAR_*`) and how to make it
+`build`/`create` pipelines in `package.ts`, override params with `BC_PAR_*`) and how
+to make it
 `bc-pkg`-installable: push to GitHub and run
 `npx bc-pkg <owner>/<name>@<ref> package build`, or for local dev
 `npx bc-pkg ../<name>/typescript package build`.

@@ -82,21 +82,26 @@ load-bearing rules:
 
 All three skills produce the same minimal real package, translated idiomatically per
 language: depends only on the `big-config` SDK, renders one `hello` stage from one
-template directory, and exposes `validate` + `build`. The TypeScript file map below is the
-reference shape; Python (`src/<module>/*.py`) and Clojure
-(`src/clj/<ns-path>/*.clj`) mirror it module-for-module (`cli`, `options`, `params`,
-`tools`, `validation`, `package`; TS/Python also have `interop`).
+template directory, and exposes `package validate`, `package describe`, `package build`,
+`package create`, and `package delete`. The TypeScript file map below is the reference
+shape; Python (`src/<module>/*.py`) and Clojure (`src/clj/<ns-path>/*.clj`) mirror it
+module-for-module (`cli`, `options`, `params`, `tools`, `validation`, `describe`,
+`package`; TS/Python also have `interop`).
 
-- `src/cli.ts` — `main(argv, opts)` dispatches `package` / `validate` / `hello`.
+- `src/cli.ts` — `main(argv, opts)` dispatches `package` / `hello` (no top-level
+  `validate` shortcut).
 - `src/<name>/package.ts` — assembles the workflow: registers tool stages via
-  `registerWorkflow`, builds the `build` pipeline with `createWorkflowStar`, and threads
-  `validate`/`build` fns through `createWorkflow`. Exports `<var>` and `<var>Star`.
+  `registerWorkflow`, builds the safe render-only `build` and `create` pipelines with
+  `createWorkflowStar`, defines a no-op `delete`, and threads the lifecycle fns through
+  `createWorkflow`. Exports `<var>` and `<var>Star`.
 - `src/<name>/tools.ts` — the `hello` stage; `templatePath` resolves the packaged template
   dir from its namespaced name across candidate locations.
 - `src/<name>/options.ts` — profiles composed left-to-right; the active one is the `bb`
   binding.
 - `src/<name>/validation.ts` — pure `validateReport` + a `validate` workflow step;
   flags blank or `REPLACE_ME` params and honors `BC_PAR_*` overrides.
+- `src/<name>/describe.ts` — pure `describeReport` + a simple `describe` workflow step
+  that prints the active package/profile/name summary.
 - root `run` — launcher entry point copied into the user's project by `bc-pkg`; holds a
   user-editable default profile and **no real credentials**.
 
@@ -105,16 +110,17 @@ Imports use explicit `.js` extensions (required by `NodeNext`).
 ## Verifying a change to a skill
 
 There is nothing to run in this repo. To check that an edit still works, scaffold a
-package and follow that skill's Step 5. Each ends the same way: `validate` exits 0,
-`build` renders `.dist/<name>-<hash>/.../hello/greeting.txt` containing `Hello, world!`,
-and `BC_PAR_NAME=REPLACE_ME … validate` must **fail** with exit 1 (proving overrides reach
-the report). The per-language commands:
+package and follow that skill's Step 5. Each ends the same way: `validate`, `describe`,
+and `delete` exit 0, `build` and `create` render
+`.dist/<name>-<hash>/.../hello/greeting.txt` containing `Hello, world!`, and
+`BC_PAR_NAME=REPLACE_ME … package validate` must **fail** with exit 1 (proving overrides
+reach the report). The per-language commands:
 
 - **TS:** `npm install && npm run build && npm run typecheck && npm test`, then
-  `node run package validate` / `node run package build`.
+  `node run package validate|describe|build|create|delete`.
 - **Python:** `uv sync && uv run pytest -q`, then
-  `uv run python run package validate` / `uv run python run package build`.
-- **Clojure:** `clojure -M:test`, then `bb run package validate` / `bb run package build`.
+  `uv run python run package validate|describe|build|create|delete`.
+- **Clojure:** `clojure -M:test`, then `bb run package validate|describe|build|create|delete`.
 
 Each skill's `reference/checklist.md` is the conformance contract the output must satisfy.
 A good extra check is to re-instantiate from the templates with a **hyphenated** name

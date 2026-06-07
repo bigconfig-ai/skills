@@ -20,8 +20,9 @@ item confirmed after scaffolding.
 - [ ] **Source vs resource paths.** Source dirs munge hyphens to underscores
       (`src/clj/io/github/bigconfig_ai/<pkg>`); resources keep hyphens
       (`src/resources/io/github/bigconfig-ai/<pkg>`).
-- [ ] **Lifecycle commands run.** `bb run package validate` and `bb run package build`
-      succeed; build emits output under `.dist/`.
+- [ ] **Lifecycle commands run.** `bb run package validate`,
+      `bb run package describe`, `bb run package build`, `bb run package create`, and
+      `bb run package delete` succeed; build and create emit output under `.dist/`.
 - [ ] **Params are kebab-case keywords** matching template variable names; runtime
       overrides work via `BC_PAR_*`.
 - [ ] **`.dist/` is generated**, git-ignored, and never edited as source.

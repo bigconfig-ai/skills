@@ -13,7 +13,10 @@ npm run typecheck
 npm test
 npm run __PKG_NAME__ -- help              # run the CLI from source via tsx
 npm run __PKG_NAME__ -- package validate
+npm run __PKG_NAME__ -- package describe
 npm run __PKG_NAME__ -- package build
+npm run __PKG_NAME__ -- package create     # safe demo create; renders hello
+npm run __PKG_NAME__ -- package delete     # explicit no-op
 node run package build                     # run through the launcher-friendly entry point
 ```
 
@@ -30,7 +33,8 @@ __PKG_NAME__/
 │   │   ├── params.ts         # BC_PAR_* overrides -> opts
 │   │   ├── tools.ts          # the `hello` render stage
 │   │   ├── validation.ts     # pure validate report + workflow step
-│   │   ├── package.ts        # validate/build verbs + __PKG_VAR__Star wrapper
+│   │   ├── describe.ts       # pure describe report + workflow step
+│   │   ├── package.ts        # lifecycle verbs + __PKG_VAR__Star wrapper
 │   │   └── interop.ts        # alias <-> namespaced-key bridge
 │   └── resources/__PKG_NS_PATH__/tools/hello/greeting.txt
 └── test/
@@ -41,6 +45,7 @@ __PKG_NAME__/
 - Add params to the profile in `options.ts` (and the `DEFAULT_PROFILE` in `run`),
   keeping keys kebab-case to match template variables.
 - Add a stage: write a render function in `tools.ts`, `registerWorkflow` it, and add
-  it to the `build` (and any `create`/`delete`) pipeline in `package.ts`.
+  it to the `build` and `create` pipelines (and any real `delete` pipeline) in
+  `package.ts`.
 - Override any param at runtime with `BC_PAR_*` env vars (e.g. `BC_PAR_NAME=alice`).
 - Generated output lands in `.dist/` — never edit it as source.

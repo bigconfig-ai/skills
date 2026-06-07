@@ -16,8 +16,10 @@ item confirmed after scaffolding.
       includes `src/resources`, so templates exist in the installed artifact.
 - [ ] **Installable from a GitHub SHA** (`big-config @ git+https://…@<40-char-sha>`) and
       **from a local path** (editable `[tool.uv.sources]`) for SDK dev.
-- [ ] **Lifecycle commands run.** `uv run python run package validate` and
-      `uv run python run package build` succeed; build emits output under `.dist/`.
+- [ ] **Lifecycle commands run.** `uv run python run package validate`,
+      `uv run python run package describe`, `uv run python run package build`,
+      `uv run python run package create`, and `uv run python run package delete`
+      succeed; build and create emit output under `.dist/`.
 - [ ] **Params are kebab-case** strings matching template variable names; runtime
       overrides work via `BC_PAR_*`.
 - [ ] **`.dist/` is generated**, git-ignored, and never edited as source.

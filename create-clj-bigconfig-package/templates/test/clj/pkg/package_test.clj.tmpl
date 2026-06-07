@@ -24,15 +24,46 @@
        (filter #(and (.isFile %) (= name (.getName %))))
        first))
 
-(deftest package-build-renders-hello-template
+(defn- delete-tree!
+  [f]
+  (when (.exists (io/file f))
+    (run! io/delete-file (reverse (file-seq (io/file f))))))
+
+(defn- run-package
+  ([pkg-dir step]
+   (sh "bb" "run" "package" step :dir pkg-dir))
+  ([pkg-dir step env]
+   (sh "bb" "run" "package" step :dir pkg-dir :env env)))
+
+(deftest package-lifecycle-validate-describe-delete
+  (let [pkg-dir (System/getProperty "user.dir")]
+    (doseq [step ["validate" "describe" "delete"]]
+      (let [{:keys [exit out err]} (run-package pkg-dir step)]
+        (is (zero? exit) (str step " failed\n" out "\n" err))))))
+
+(deftest package-build-and-create-render-hello-template
   (let [pkg-dir (System/getProperty "user.dir")
         dist (io/file pkg-dir ".dist")]
-    (try
-      (let [{:keys [exit out err]} (sh "bb" "run" "package" "build" :dir pkg-dir)]
-        (is (zero? exit) (str "build failed\n" out "\n" err))
-        (let [greeting (find-file dist "greeting.txt")]
-          (is (some? greeting) "greeting.txt should be rendered under .dist")
-          (is (str/includes? (slurp greeting) "Hello, world!"))))
-      (finally
-        (when (.exists dist)
-          (run! io/delete-file (reverse (file-seq dist))))))))
+    (doseq [step ["build" "create"]]
+      (try
+        (delete-tree! dist)
+        (let [{:keys [exit out err]} (run-package pkg-dir step)]
+          (is (zero? exit) (str step " failed\n" out "\n" err))
+          (let [greeting (find-file dist "greeting.txt")]
+            (is (some? greeting) "greeting.txt should be rendered under .dist")
+            (is (str/includes? (slurp greeting) "Hello, world!"))))
+        (finally
+          (delete-tree! dist))))))
+
+(deftest package-validate-fails-for-placeholder-override
+  (let [pkg-dir (System/getProperty "user.dir")
+        env (assoc (into {} (System/getenv)) "BC_PAR_NAME" "REPLACE_ME")
+        {:keys [exit out err]} (run-package pkg-dir "validate" env)]
+    (is (= 1 exit) (str "validate should fail\n" out "\n" err))
+    (is (str/includes? (str out "\n" err) "Validation failed"))))
+
+(deftest top-level-validate-shortcut-is-not-exposed
+  (let [pkg-dir (System/getProperty "user.dir")
+        {:keys [exit out err]} (sh "bb" "run" "validate" :dir pkg-dir)]
+    (is (= 1 exit) (str "top-level validate should fail\n" out "\n" err))
+    (is (str/includes? err "Use `bb run package validate`."))))

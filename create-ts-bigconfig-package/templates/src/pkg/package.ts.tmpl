@@ -2,6 +2,9 @@
 import {
   ENV,
   WF_BUILD_FN,
+  WF_CREATE_FN,
+  WF_DELETE_FN,
+  WF_DESCRIBE_FN,
   WF_PARAMS,
   WF_VALIDATE_FN,
   type Opts,
@@ -17,6 +20,7 @@ import {
   registerWorkflow,
   runSteps,
 } from "big-config/workflow";
+import { describe as describeStep } from "./describe.js";
 import { syncAliases, toBcOpts } from "./interop.js";
 import { optsFn } from "./params.js";
 import * as tools from "./tools.js";
@@ -24,8 +28,10 @@ import { validate } from "./validation.js";
 
 const START = "__PKG_NAMESPACE__.package/start";
 const END = "__PKG_NAMESPACE__.package/end";
-const PIPELINE_START = "__PKG_NAMESPACE__.package/start-build";
-const PIPELINE_END = "__PKG_NAMESPACE__.package/end-build";
+const RENDER_PIPELINE_START = "__PKG_NAMESPACE__.package/start-render";
+const RENDER_PIPELINE_END = "__PKG_NAMESPACE__.package/end-render";
+const DELETE_PIPELINE_START = "__PKG_NAMESPACE__.package/start-delete";
+const DELETE_PIPELINE_END = "__PKG_NAMESPACE__.package/end-delete";
 
 export const stepFns: StepFn[] = [
   printStepFn,
@@ -36,13 +42,29 @@ export const stepFns: StepFn[] = [
 // Register every tool stage so the pipeline can dispatch it by name.
 registerWorkflow(tools.HELLO, tools.hello as any);
 
+const RENDER_HELLO_PIPELINE = [
+  tools.HELLO, ["render", optsFn],
+];
+
 /** `build`: render every stage without applying anything. */
 export const build = createWorkflowStar({
-  firstStep: PIPELINE_START,
-  lastStep: PIPELINE_END,
-  pipeline: [
-    tools.HELLO, ["render", optsFn],
-  ],
+  firstStep: RENDER_PIPELINE_START,
+  lastStep: RENDER_PIPELINE_END,
+  pipeline: RENDER_HELLO_PIPELINE,
+});
+
+/** `create`: safe demo create; render the same hello stage as build. */
+export const create = createWorkflowStar({
+  firstStep: RENDER_PIPELINE_START,
+  lastStep: RENDER_PIPELINE_END,
+  pipeline: RENDER_HELLO_PIPELINE,
+});
+
+/** `delete`: explicit no-op for the minimal package. */
+export const deleteWorkflow = createWorkflowStar({
+  firstStep: DELETE_PIPELINE_START,
+  lastStep: DELETE_PIPELINE_END,
+  pipeline: [],
 });
 
 const TOOL_OPTS_KEYS = [`${tools.HELLO}-opts`];
@@ -50,8 +72,11 @@ const TOOL_OPTS_KEYS = [`${tools.HELLO}-opts`];
 export function __PKG_VAR__(sfns: StepFn[], opts0: Opts): Opts {
   const opts = toBcOpts(opts0);
   const withFns: Opts = {
+    [WF_CREATE_FN]: create,
     [WF_BUILD_FN]: build,
+    [WF_DELETE_FN]: deleteWorkflow,
     [WF_VALIDATE_FN]: validate,
+    [WF_DESCRIBE_FN]: describeStep,
     ...opts,
   };
   const merged = mergeParams(TOOL_OPTS_KEYS, opts[WF_PARAMS] ?? {}, withFns);

@@ -1,0 +1,38 @@
+(ns __PKG_NAMESPACE__.describe
+  "Simple package description. Pure report + workflow step."
+  (:require
+   [big-config.core :as core]
+   [big-config.render :as render]
+   [big-config.workflow :as workflow]
+   [clojure.string :as str]))
+
+(defn- display
+  ([v] (display v "(unset)"))
+  ([v fallback]
+   (cond
+     (and (string? v) (not (str/blank? v))) v
+     (nil? v) fallback
+     :else (str v))))
+
+(defn describe-report
+  "Pure: build a concise description of the active profile."
+  ([opts] (describe-report opts (System/getenv)))
+  ([opts env]
+   (let [opts (workflow/read-bc-pars opts env)
+         params (::workflow/params opts)]
+     {:profile (display (::render/profile opts) "default")
+      :package (display (:package params))
+      :name    (display (:name params))})))
+
+(defn print-report
+  [result]
+  (println (str "Package: " (:package result)))
+  (println (str "Profile: " (:profile result)))
+  (println (str "Name: " (:name result))))
+
+(defn describe
+  "Workflow step: print the description and succeed."
+  [_step-fns opts]
+  (let [result (describe-report opts)]
+    (print-report result)
+    (merge opts {::result result} (core/ok))))

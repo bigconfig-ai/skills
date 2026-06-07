@@ -11,7 +11,10 @@ uv sync
 uv run pytest -q
 uv run __PKG_NAME__ help               # run the CLI via the installed entry point
 uv run python run package validate
+uv run python run package describe
 uv run python run package build
+uv run python run package create     # safe demo create; renders hello
+uv run python run package delete     # explicit no-op
 ```
 
 ## Layout
@@ -27,7 +30,8 @@ __PKG_NAME__/python/
 │   │   ├── params.py         # BC_PAR_* overrides -> opts
 │   │   ├── tools.py          # the `hello` render stage
 │   │   ├── validation.py     # pure validate report + workflow step
-│   │   ├── package.py        # validate/build verbs + __PKG_MODULE___star wrapper
+│   │   ├── describe.py       # pure describe report + workflow step
+│   │   ├── package.py        # lifecycle verbs + __PKG_MODULE___star wrapper
 │   │   └── interop.py        # alias <-> namespaced-key bridge
 │   └── resources/__PKG_NS_PATH__/tools/hello/greeting.txt
 └── tests/
@@ -37,7 +41,8 @@ __PKG_NAME__/python/
 
 - Add params to the profile in `options.py` (and `DEFAULT_PROFILE` in `run`), keeping
   keys kebab-case to match template variables.
-- Add a stage: write a render function in `tools.py`, `register_workflow_step` it, and
-  add it to the `build` pipeline in `package.py`.
+- Add a stage: write a render function in `tools.py`, `register_workflow_step` it,
+  and add it to the `build` and `create` pipelines (and any real `delete` pipeline)
+  in `package.py`.
 - Override any param at runtime with `BC_PAR_*` env vars (e.g. `BC_PAR_NAME=alice`).
 - Generated output lands in `.dist/` — never edit it as source.

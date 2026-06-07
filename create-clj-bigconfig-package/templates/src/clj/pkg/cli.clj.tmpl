@@ -5,14 +5,18 @@
    [__PKG_NAMESPACE__.params :as params]
    [__PKG_NAMESPACE__.tools :as tools]))
 
+(def package-usage "bb run package <validate|describe|build|create|delete>...")
+
 (def help-text
   "Usage: bb run <command> [args...]
 
 Commands:
   package <step>...  Run package lifecycle steps for the active profile.
                        bb run package validate
+                       bb run package describe
                        bb run package build
-  validate           Shortcut for `bb run package validate`.
+                       bb run package create
+                       bb run package delete
   hello <args>       Render the hello tool. e.g. bb run hello render
 
 Notes:
@@ -20,7 +24,7 @@ Notes:
     otherwise it defaults to `bb` in __PKG_NAMESPACE__.options.
   * Any param can be overridden with BC_PAR_* environment variables.")
 
-(def package-commands #{"validate" "build"})
+(def package-commands #{"validate" "describe" "build" "create" "delete"})
 
 (defn- die!
   [& lines]
@@ -40,15 +44,10 @@ Notes:
        (or (nil? command) (#{"help" "--help" "-h"} command))
        (println help-text)
 
-       (= command "validate")
-       (if (seq rest-args)
-         (die! "Error: bb run validate does not accept arguments." "Usage: bb run validate")
-         (package/__PKG_NAME__* ["validate"] opts))
-
        (= command "package")
        (if (seq rest-args)
          (package/__PKG_NAME__* rest-args opts)
-         (die! "Missing package step." "Usage: bb run package <validate|build>..."))
+         (die! "Missing package step." (str "Usage: " package-usage)))
 
        (contains? package-commands command)
        (die! (str "Use `bb run package " command "`.") "" help-text)

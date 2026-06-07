@@ -16,8 +16,10 @@ with each item confirmed after scaffolding.
       the built `dist/src`, so templates exist in the installed artifact.
 - [ ] **Installable from a GitHub SHA** (`big-config` dep pins a 40-char commit) and
       **from a local path** (`file:../../big-config/typescript`) for SDK dev.
-- [ ] **Lifecycle commands run.** `node run package validate` and
-      `node run package build` succeed; build emits output under `.dist/`.
+- [ ] **Lifecycle commands run.** `node run package validate`,
+      `node run package describe`, `node run package build`,
+      `node run package create`, and `node run package delete` succeed; build and
+      create emit output under `.dist/`.
 - [ ] **Params are kebab-case** strings matching template variable names; runtime
       overrides work via `BC_PAR_*`.
 - [ ] **`.dist/` is generated**, git-ignored, and never edited as source.

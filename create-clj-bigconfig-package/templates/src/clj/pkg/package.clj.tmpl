@@ -5,6 +5,7 @@
    [big-config.core :as core]
    [big-config.step-fns :as step-fns]
    [big-config.workflow :as workflow]
+   [__PKG_NAMESPACE__.describe :as describe]
    [__PKG_NAMESPACE__.params :as params]
    [__PKG_NAMESPACE__.tools :as tools]
    [__PKG_NAMESPACE__.validation :as validation]))
@@ -13,11 +14,26 @@
                (step-fns/->exit-step-fn ::end)
                (step-fns/->print-error-step-fn ::end)])
 
+(def ^:private render-hello-pipeline
+  [::tools/hello ["render" params/opts-fn]])
+
 ;; `build`: render every stage without applying anything.
 (def build
-  (workflow/->workflow* {:first-step ::start-build
-                         :last-step  ::end-build
-                         :pipeline   [::tools/hello ["render" params/opts-fn]]}))
+  (workflow/->workflow* {:first-step ::start-render
+                         :last-step  ::end-render
+                         :pipeline   render-hello-pipeline}))
+
+;; `create`: safe demo create; render the same hello stage as build.
+(def create
+  (workflow/->workflow* {:first-step ::start-render
+                         :last-step  ::end-render
+                         :pipeline   render-hello-pipeline}))
+
+;; `delete`: explicit no-op for the minimal package.
+(def delete
+  (workflow/->workflow* {:first-step ::start-delete
+                         :last-step  ::end-delete
+                         :pipeline   []}))
 
 ;; Register every tool stage so the pipeline can dispatch it by name.
 (def ^:private tool-workflows
@@ -31,8 +47,11 @@
 (defn __PKG_NAME__
   [step-fns {:keys [::workflow/params] :as opts}]
   (let [opts (->> opts
-                  (merge {::workflow/build-fn build
-                          ::workflow/validate-fn validation/validate})
+                  (merge {::workflow/create-fn create
+                          ::workflow/build-fn build
+                          ::workflow/delete-fn delete
+                          ::workflow/validate-fn validation/validate
+                          ::workflow/describe-fn describe/describe})
                   (workflow/merge-params [::tools/hello-opts] params))
         wf (core/->workflow {:first-step ::start
                              :wire-fn (fn [step step-fns]

@@ -8,19 +8,28 @@ import { bb } from "./__PKG_NAME__/options.js";
 import { __PKG_VAR__Star } from "./__PKG_NAME__/package.js";
 import { helloStar } from "./__PKG_NAME__/tools.js";
 
+const PACKAGE_USAGE = "__PKG_NAME__ package <validate|describe|build|create|delete>...";
+
 const HELP = `Usage: __PKG_NAME__ <command> [args...]
 
 Commands:
   package <step>...  Run package lifecycle steps for the active profile.
                        __PKG_NAME__ package validate
+                       __PKG_NAME__ package describe
                        __PKG_NAME__ package build
-  validate           Shortcut for \`__PKG_NAME__ package validate\`.
+                       __PKG_NAME__ package create
+                       __PKG_NAME__ package delete
   hello <args>       Render the hello tool. e.g. __PKG_NAME__ hello render
 
 Notes:
   * When launched through \`run\`, the active profile comes from that script;
     otherwise it defaults to \`bb\` in src/__PKG_NAME__/options.ts.
   * Any param can be overridden with BC_PAR_* environment variables.`;
+
+function die(...lines: string[]): never {
+  for (const line of lines) console.error(line);
+  process.exit(1);
+}
 
 export function main(argv: string[], opts: Opts = bb): void {
   const [command, ...rest] = argv;
@@ -32,18 +41,14 @@ export function main(argv: string[], opts: Opts = bb): void {
       console.log(HELP);
       return;
     case "package":
+      if (rest.length === 0) die("Missing package step.", `Usage: ${PACKAGE_USAGE}`);
       __PKG_VAR__Star(rest, opts);
-      return;
-    case "validate":
-      __PKG_VAR__Star(["validate"], opts);
       return;
     case "hello":
       helloStar(rest, opts);
       return;
     default:
-      console.error(`Unknown command: ${command}\n`);
-      console.error(HELP);
-      process.exit(1);
+      die(`Unknown command: ${command}`, "", HELP);
   }
 }
 

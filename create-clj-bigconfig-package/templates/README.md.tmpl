@@ -10,7 +10,10 @@ A minimal [BigConfig](https://www.bigconfig.ai) package, scaffolded from the
 clojure -M:test                 # run tests (cognitect test-runner)
 bb run help                     # run the CLI through the launcher entry point
 bb run package validate
+bb run package describe
 bb run package build
+bb run package create     # safe demo create; renders hello
+bb run package delete     # explicit no-op
 ```
 
 ## Layout
@@ -27,7 +30,8 @@ __PKG_NAME__/clojure/
 │   │   ├── params.clj        # BC_PAR_* overrides -> opts
 │   │   ├── tools.clj         # the `hello` render stage
 │   │   ├── validation.clj    # pure validate-report + workflow step
-│   │   └── package.clj       # validate/build verbs + __PKG_NAME__* wrapper
+│   │   ├── describe.clj      # pure describe-report + workflow step
+│   │   └── package.clj       # lifecycle verbs + __PKG_NAME__* wrapper
 │   └── resources/__PKG_NS_RES_PATH__/tools/hello/greeting.txt   # hyphens kept
 └── test/clj/__PKG_NS_SRC_PATH__/
 ```
@@ -37,6 +41,7 @@ __PKG_NAME__/clojure/
 - Add params to the profile in `options.clj` (and `default-profile` in `run`), keeping
   keys kebab-case keywords to match template variables.
 - Add a stage: write a render fn in `tools.clj`, register it in `package.clj`'s
-  `tool-workflows`, and add it to the `build` pipeline.
+  `tool-workflows`, and add it to the `build` and `create` pipelines (and any real
+  `delete` pipeline).
 - Override any param at runtime with `BC_PAR_*` env vars (e.g. `BC_PAR_NAME=alice`).
 - Generated output lands in `.dist/` — never edit it as source.
