@@ -8,14 +8,18 @@ PKG_DIR = Path(__file__).resolve().parent.parent
 RUN = PKG_DIR / "run"
 
 
-def run_package(step: str, cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def run_cli(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(RUN), "package", step],
+        [sys.executable, str(RUN), *args],
         cwd=cwd,
         text=True,
         capture_output=True,
         env=env,
     )
+
+
+def run_package(step: str, cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    return run_cli(["package", step], cwd, env)
 
 
 def assert_ok(res: subprocess.CompletedProcess[str], step: str) -> None:
@@ -29,12 +33,21 @@ def find(base: Path, name: str) -> Path | None:
     return None
 
 
-def assert_greeting_rendered(cwd: Path) -> None:
+def top_level_dist_dir(cwd: Path) -> str:
     dist = cwd / ".dist"
     assert dist.exists()
-    greeting = find(dist, "greeting.txt")
+    dirs = sorted(p.name for p in dist.iterdir() if p.is_dir())
+    assert len(dirs) == 1, "exactly one top-level .dist directory should be rendered"
+    return dirs[0]
+
+
+def assert_greeting_rendered(cwd: Path, top_level_dir: str | None = None, expected: str = "Hello, world!") -> None:
+    dist = cwd / ".dist"
+    assert dist.exists()
+    root = dist if top_level_dir is None else dist / top_level_dir
+    greeting = find(root, "greeting.txt")
     assert greeting is not None, "greeting.txt should be rendered under .dist"
-    assert "Hello, world!" in greeting.read_text()
+    assert expected in greeting.read_text()
 
 
 def test_package_lifecycle_validate_describe_delete():
@@ -49,7 +62,31 @@ def test_package_build_and_create_render_hello_template():
         with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-") as tmp_s:
             tmp = Path(tmp_s)
             assert_ok(run_package(step, tmp), step)
-            assert_greeting_rendered(tmp)
+            assert_greeting_rendered(tmp, top_level_dist_dir(tmp))
+
+
+def test_hello_render_uses_package_build_top_level_dist_dir():
+    with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-build-") as build_tmp_s:
+        with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-hello-") as hello_tmp_s:
+            build_tmp = Path(build_tmp_s)
+            hello_tmp = Path(hello_tmp_s)
+
+            assert_ok(run_package("build", build_tmp), "package build")
+            build_dir = top_level_dist_dir(build_tmp)
+            assert_greeting_rendered(build_tmp, build_dir)
+
+            assert_ok(run_cli(["hello", "render"], hello_tmp), "hello render")
+            hello_dir = top_level_dist_dir(hello_tmp)
+            assert_greeting_rendered(hello_tmp, hello_dir)
+
+            assert hello_dir == build_dir
+
+
+def test_hello_render_applies_bc_par_overrides():
+    with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-hello-") as tmp_s:
+        tmp = Path(tmp_s)
+        assert_ok(run_cli(["hello", "render"], tmp, {**os.environ, "BC_PAR_NAME": "Alice"}), "hello render")
+        assert_greeting_rendered(tmp, top_level_dist_dir(tmp), "Hello, Alice!")
 
 
 def test_package_validate_fails_for_placeholder_override():

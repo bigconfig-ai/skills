@@ -92,8 +92,10 @@ module-for-module (`cli`, `options`, `params`, `tools`, `validation`, `describe`
   `validate` shortcut).
 - `src/<name>/package.ts` — assembles the workflow: registers tool stages via
   `registerWorkflow`, builds the safe render-only `build` and `create` pipelines with
-  `createWorkflowStar`, defines a no-op `delete`, and threads the lifecycle fns through
-  `createWorkflow`. Exports `<var>` and `<var>Star`.
+  `createWorkflowStar`, defines a no-op `delete`, exposes a package-aligned opts helper
+  so direct `hello render` uses the same top-level `.dist/<profile>-<hash>/` directory
+  as `package build`, and threads the lifecycle fns through `createWorkflow`. Exports
+  `<var>` and `<var>Star`.
 - `src/<name>/tools.ts` — the `hello` stage; `templatePath` resolves the packaged template
   dir from its namespaced name across candidate locations.
 - `src/<name>/options.ts` — profiles composed left-to-right; the active one is the `bb`
@@ -111,16 +113,18 @@ Imports use explicit `.js` extensions (required by `NodeNext`).
 
 There is nothing to run in this repo. To check that an edit still works, scaffold a
 package and follow that skill's Step 5. Each ends the same way: `validate`, `describe`,
-and `delete` exit 0, `build` and `create` render
-`.dist/<name>-<hash>/.../hello/greeting.txt` containing `Hello, world!`, and
-`BC_PAR_NAME=REPLACE_ME … package validate` must **fail** with exit 1 (proving overrides
-reach the report). The per-language commands:
+and `delete` exit 0; `package build`, `package create`, and direct `hello render` render
+under the same top-level `.dist/<name>-<hash>/` directory with a `greeting.txt`
+containing `Hello, world!`; and `BC_PAR_NAME=REPLACE_ME … package validate` must
+**fail** with exit 1 (proving overrides reach the report). The per-language commands:
 
 - **TS:** `npm install && npm run build && npm run typecheck && npm test`, then
-  `node run package validate|describe|build|create|delete`.
+  `node run package validate|describe|build|create|delete` and `node run hello render`.
 - **Python:** `uv sync && uv run pytest -q`, then
-  `uv run python run package validate|describe|build|create|delete`.
-- **Clojure:** `clojure -M:test`, then `bb run package validate|describe|build|create|delete`.
+  `uv run python run package validate|describe|build|create|delete` and
+  `uv run python run hello render`.
+- **Clojure:** `clojure -M:test`, then
+  `bb run package validate|describe|build|create|delete` and `bb run hello render`.
 
 Each skill's `reference/checklist.md` is the conformance contract the output must satisfy.
 A good extra check is to re-instantiate from the templates with a **hyphenated** name

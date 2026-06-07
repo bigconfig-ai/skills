@@ -2,7 +2,6 @@
   (:require
    [__PKG_NAMESPACE__.options :as options]
    [__PKG_NAMESPACE__.package :as package]
-   [__PKG_NAMESPACE__.params :as params]
    [__PKG_NAMESPACE__.tools :as tools]))
 
 (def package-usage "bb run package <validate|describe|build|create|delete>...")
@@ -53,7 +52,7 @@ Notes:
        (die! (str "Use `bb run package " command "`.") "" help-text)
 
        (= command "hello")
-       (tools/hello* rest-args (params/opts-fn opts))
+       (tools/hello* rest-args (package/package-tool-opts opts))
 
        :else
        (die! (str "Unknown command: " command) "" help-text)))))

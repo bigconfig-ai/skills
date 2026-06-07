@@ -29,12 +29,23 @@ function find(base: string, name: string): string | null {
   return null;
 }
 
-function expectGreetingRendered(cwd: string): void {
+function topLevelDistDir(cwd: string): string {
   const dist = join(cwd, ".dist");
   expect(existsSync(dist)).toBe(true);
-  const greeting = find(dist, "greeting.txt");
+  const dirs = readdirSync(dist)
+    .filter((entry) => statSync(join(dist, entry)).isDirectory())
+    .sort();
+  expect(dirs, "exactly one top-level .dist directory should be rendered").toHaveLength(1);
+  return dirs[0]!;
+}
+
+function expectGreetingRendered(cwd: string, topLevelDir?: string, expected = "Hello, world!"): void {
+  const dist = join(cwd, ".dist");
+  expect(existsSync(dist)).toBe(true);
+  const root = topLevelDir === undefined ? dist : join(dist, topLevelDir);
+  const greeting = find(root, "greeting.txt");
   expect(greeting, "greeting.txt should be rendered under .dist").not.toBeNull();
-  expect(readFileSync(greeting!, "utf8")).toContain("Hello, world!");
+  expect(readFileSync(greeting!, "utf8")).toContain(expected);
 }
 
 describe("__PKG_NAME__ package lifecycle", () => {
@@ -54,10 +65,39 @@ describe("__PKG_NAME__ package lifecycle", () => {
       const tmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-"));
       try {
         expectRun("node", [cli, "package", step], tmp);
-        expectGreetingRendered(tmp);
+        expectGreetingRendered(tmp, topLevelDistDir(tmp));
       } finally {
         rmSync(tmp, { recursive: true, force: true });
       }
+    }
+  });
+
+  it("uses the package build top-level .dist directory for hello render", () => {
+    const buildTmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-build-"));
+    const helloTmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-hello-"));
+    try {
+      expectRun("node", [cli, "package", "build"], buildTmp);
+      const buildDir = topLevelDistDir(buildTmp);
+      expectGreetingRendered(buildTmp, buildDir);
+
+      expectRun("node", [cli, "hello", "render"], helloTmp);
+      const helloDir = topLevelDistDir(helloTmp);
+      expectGreetingRendered(helloTmp, helloDir);
+
+      expect(helloDir).toBe(buildDir);
+    } finally {
+      rmSync(buildTmp, { recursive: true, force: true });
+      rmSync(helloTmp, { recursive: true, force: true });
+    }
+  });
+
+  it("applies BC_PAR overrides to hello render", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-hello-"));
+    try {
+      expectRun("node", [cli, "hello", "render"], tmp, { ...process.env, BC_PAR_NAME: "Alice" });
+      expectGreetingRendered(tmp, topLevelDistDir(tmp), "Hello, Alice!");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
     }
   });
 

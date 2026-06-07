@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Opts } from "big-config";
 import { bb } from "./__PKG_NAME__/options.js";
-import { __PKG_VAR__Star } from "./__PKG_NAME__/package.js";
+import { packageToolOpts, __PKG_VAR__Star } from "./__PKG_NAME__/package.js";
 import { helloStar } from "./__PKG_NAME__/tools.js";
 
 const PACKAGE_USAGE = "__PKG_NAME__ package <validate|describe|build|create|delete>...";
@@ -45,7 +45,7 @@ export function main(argv: string[], opts: Opts = bb): void {
       __PKG_VAR__Star(rest, opts);
       return;
     case "hello":
-      helloStar(rest, opts);
+      helloStar(rest, packageToolOpts(opts));
       return;
     default:
       die(`Unknown command: ${command}`, "", HELP);

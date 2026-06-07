@@ -18,8 +18,12 @@ with each item confirmed after scaffolding.
       **from a local path** (`file:../../big-config/typescript`) for SDK dev.
 - [ ] **Lifecycle commands run.** `node run package validate`,
       `node run package describe`, `node run package build`,
-      `node run package create`, and `node run package delete` succeed; build and
-      create emit output under `.dist/`.
+      `node run package create`, `node run hello render`, and
+      `node run package delete` succeed; build, create, and hello render emit output
+      under `.dist/`.
+- [ ] **Direct tool render matches package build.** `node run hello render` and
+      `node run package build` create the same top-level `.dist/<profile>-<hash>/`
+      directory.
 - [ ] **Params are kebab-case** strings matching template variable names; runtime
       overrides work via `BC_PAR_*`.
 - [ ] **`.dist/` is generated**, git-ignored, and never edited as source.

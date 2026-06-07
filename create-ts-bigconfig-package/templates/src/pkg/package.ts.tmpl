@@ -15,10 +15,12 @@ import { createExitStepFn, createPrintErrorStepFn } from "big-config/step-fns";
 import {
   createWorkflowStar,
   mergeParams,
+  newPrefix,
   parseArgs,
   printStepFn,
   registerWorkflow,
   runSteps,
+  selectGlobals,
 } from "big-config/workflow";
 import { describe as describeStep } from "./describe.js";
 import { syncAliases, toBcOpts } from "./interop.js";
@@ -66,6 +68,13 @@ export const deleteWorkflow = createWorkflowStar({
   lastStep: DELETE_PIPELINE_END,
   pipeline: [],
 });
+
+/** Opts for direct tool commands: use the same prefix and params as `package build`. */
+export function packageToolOpts(opts0: Opts = {}): Opts {
+  const opts = toBcOpts(opts0);
+  const globals = newPrefix(selectGlobals(opts), RENDER_PIPELINE_START);
+  return syncAliases(optsFn({ ...opts, ...globals }));
+}
 
 const TOOL_OPTS_KEYS = [`${tools.HELLO}-opts`];
 

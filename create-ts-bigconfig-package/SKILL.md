@@ -94,15 +94,17 @@ npm test
 node run package validate          # expect: All checks passed. (exit 0)
 node run package describe          # expect: prints package/profile/name summary (exit 0)
 node run package build             # expect: renders .dist/<name>-<hash>/.../hello/greeting.txt
-node run package create            # expect: safe demo create; renders the same hello output
+node run package create            # expect: safe demo create; renders the same top-level .dist dir
+node run hello render              # expect: renders the same top-level .dist dir as package build
 node run package delete            # expect: explicit no-op success (exit 0)
 BC_PAR_NAME=REPLACE_ME node run package validate   # expect: validation failed (exit 1)
 ```
 
 All of these must succeed (the override case must *fail* validation — that proves
-`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists after `build` and
-`create`, holds the rendered `greeting.txt` containing `Hello, world!`, and is
-git-ignored.
+`BC_PAR_*` overrides reach the report). Confirm `.dist/` exists after `build`,
+`create`, and `hello render`; `package build`, `package create`, and `hello render`
+use the same top-level `.dist/<name>-<hash>/` directory; the rendered
+`greeting.txt` contains `Hello, world!`; and `.dist/` is git-ignored.
 
 ## Step 6 — Report
 

@@ -56,6 +56,14 @@ delete_workflow = bc_workflow.workflow_star(
     }
 )
 
+
+def package_tool_opts(opts: Opts | None = None) -> Opts:
+    """Opts for direct tool commands: use the same prefix and params as ``package build``."""
+    bc_opts = to_bc_opts(opts or {})
+    globals_opts = bc_workflow.new_prefix(bc_workflow.select_globals(bc_opts), RENDER_PIPELINE_START)
+    return sync_aliases(opts_fn({**bc_opts, **globals_opts}))
+
+
 TOOL_OPTS_KEYS = [f"{pkg_tools.HELLO}-opts"]
 
 

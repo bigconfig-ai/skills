@@ -6,7 +6,7 @@ import sys
 from big_config.core import Opts
 
 from .options import bb
-from .package import __PKG_MODULE___star
+from .package import __PKG_MODULE___star, package_tool_opts
 from .tools import hello_star
 
 PACKAGE_USAGE = "__PKG_NAME__ package <validate|describe|build|create|delete>..."
@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None, opts: Opts | None = None) -> None:
             return
         die("Missing package step.", f"Usage: {PACKAGE_USAGE}")
     if command == "hello":
-        hello_star(rest, active_profile)
+        hello_star(rest, package_tool_opts(active_profile))
         return
 
     die(f"Unknown command: {command}", "", HELP)

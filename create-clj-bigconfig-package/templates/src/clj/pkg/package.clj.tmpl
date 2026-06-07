@@ -35,6 +35,13 @@
                          :last-step  ::end-delete
                          :pipeline   []}))
 
+(defn package-tool-opts
+  "Opts for direct tool commands: use the same prefix and params as `package build`."
+  [opts]
+  (let [opts (or opts {})]
+    (params/opts-fn (merge opts (workflow/new-prefix (workflow/select-globals opts)
+                                                     ::start-render)))))
+
 ;; Register every tool stage so the pipeline can dispatch it by name.
 (def ^:private tool-workflows
   {::tools/hello tools/hello})
