@@ -1,0 +1,53 @@
+"""Package-owned tool workflows. The ``hello`` stage renders one template."""
+from __future__ import annotations
+
+from pathlib import Path
+
+from big_config import ENV
+from big_config import render as bc_render
+from big_config import workflow as bc_workflow
+from big_config.core import Opts, StepFn
+from big_config.step_fns import exit_step_fn, print_error_step_fn
+from big_config.utils import keyword_to_path
+
+END = "big-config.workflow/end"
+
+step_fns: list[StepFn] = [bc_workflow.print_step_fn, exit_step_fn(END), print_error_step_fn(END)]
+
+HELLO = "__PKG_NAMESPACE__.tools/hello"
+
+
+def template_path(template: str) -> str:
+    """Resolve a packaged template directory from its namespaced name."""
+    rel = keyword_to_path(template)
+    start = Path(__file__).resolve().parent
+    candidates: list[Path] = []
+    for parent in [start, *start.parents]:
+        candidates.extend([parent / "resources" / rel, parent / "src" / "resources" / rel])
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_dir():
+            return str(candidate)
+    return rel
+
+
+def hello(sfns: list[StepFn], opts: Opts) -> Opts:
+    """Render the ``hello`` template directory into ``.dist/``."""
+    prepared = bc_workflow.prepare(
+        {
+            bc_workflow.NAME: HELLO,
+            bc_render.TEMPLATES: [
+                {
+                    "template": template_path(HELLO),
+                    "overwrite": True,
+                    "transform": [["."]],
+                }
+            ],
+        },
+        opts,
+    )
+    return bc_workflow.run_steps(sfns, prepared)
+
+
+def hello_star(args: str | list[str], opts: Opts | None = None) -> Opts:
+    parsed = bc_workflow.parse_args(args)
+    return hello(step_fns, {**parsed, ENV: "shell", **(opts or {})})

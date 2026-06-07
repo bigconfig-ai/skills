@@ -1,0 +1,16 @@
+from __PKG_MODULE__.validation import validate_report
+
+profile = {
+    "big-config.render/profile": "__PKG_NAME__",
+    "big-config.workflow/params": {"package": "__PKG_NAME__", "name": "world"},
+}
+
+
+def test_passes_for_complete_profile():
+    assert validate_report(profile, {})["ok"] is True
+
+
+def test_flags_blank_or_placeholder_param():
+    result = validate_report(profile, {"BC_PAR_NAME": "REPLACE_ME"})
+    assert result["ok"] is False
+    assert any("name" in e["detail"] for e in result["errors"])

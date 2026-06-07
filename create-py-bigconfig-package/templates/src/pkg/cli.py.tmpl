@@ -1,0 +1,60 @@
+"""Command-line entry point."""
+from __future__ import annotations
+
+import sys
+
+from big_config.core import Opts
+
+from .options import bb
+from .package import __PKG_MODULE___star
+from .tools import hello_star
+
+HELP = """Usage: __PKG_NAME__ <command> [args...]
+
+Commands:
+  package <step>...  Run package lifecycle steps for the active profile.
+                       __PKG_NAME__ package validate
+                       __PKG_NAME__ package build
+  validate           Shortcut for `__PKG_NAME__ package validate`.
+  hello <args>       Render the hello tool. e.g. __PKG_NAME__ hello render
+
+Notes:
+  * When launched through `run`, the active profile comes from that script;
+    otherwise it defaults to `bb` in __PKG_MODULE__/options.py.
+  * Any param can be overridden with BC_PAR_* environment variables."""
+
+
+def die(*lines: str) -> None:
+    for line in lines:
+        print(line, file=sys.stderr)
+    raise SystemExit(1)
+
+
+def main(argv: list[str] | None = None, opts: Opts | None = None) -> None:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv[:1] == ["--"]:
+        argv = argv[1:]
+    active_profile = opts if opts is not None else bb
+    command = argv[0] if argv else None
+    rest = argv[1:] if argv else []
+
+    if command in {None, "help", "--help", "-h"}:
+        print(HELP)
+        return
+    if command == "package":
+        if rest:
+            __PKG_MODULE___star(rest, active_profile)
+            return
+        die("Missing package step.", "Usage: __PKG_NAME__ package <validate|build>...")
+    if command == "validate":
+        __PKG_MODULE___star(["validate"], active_profile)
+        return
+    if command == "hello":
+        hello_star(rest, active_profile)
+        return
+
+    die(f"Unknown command: {command}", "", HELP)
+
+
+if __name__ == "__main__":
+    main()

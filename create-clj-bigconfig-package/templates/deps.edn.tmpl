@@ -1,0 +1,8 @@
+{:paths   ["src/clj" "src/resources"]
+ :deps    {org.clojure/clojure          {:mvn/version "1.12.5"}
+           io.github.amiorin/big-config __BIG_CONFIG_REF__
+           #_#_io.github.amiorin/big-config {:local/root "../../big-config/clojure"}}
+ :aliases {:test {:extra-paths ["test/clj"]
+                  :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                  :main-opts   ["-m" "cognitect.test-runner"]
+                  :exec-fn     cognitect.test-runner.api/test}}}

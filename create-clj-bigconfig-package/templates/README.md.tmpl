@@ -1,0 +1,42 @@
+# __PKG_NAME__
+
+A minimal [BigConfig](https://www.bigconfig.ai) package, scaffolded from the
+`create-clj-bigconfig-package` skill. It depends on the BigConfig Clojure SDK
+(`big-config`) and renders one template through a single `hello` stage.
+
+## Commands
+
+```bash
+clojure -M:test                 # run tests (cognitect test-runner)
+bb run help                     # run the CLI through the launcher entry point
+bb run package validate
+bb run package build
+```
+
+## Layout
+
+```
+__PKG_NAME__/clojure/
+├── run                       # launcher entry point (copied by bc-pkg; safe defaults only)
+├── deps.edn                  # one root manifest; src/clj + src/resources on :paths
+├── bb.edn                    # runtime deps for `bb run`
+├── src/
+│   ├── clj/__PKG_NS_SRC_PATH__/   # NOTE: hyphens -> underscores in source paths
+│   │   ├── cli.clj           # main* dispatcher
+│   │   ├── options.clj       # active profile (`bb`)
+│   │   ├── params.clj        # BC_PAR_* overrides -> opts
+│   │   ├── tools.clj         # the `hello` render stage
+│   │   ├── validation.clj    # pure validate-report + workflow step
+│   │   └── package.clj       # validate/build verbs + __PKG_NAME__* wrapper
+│   └── resources/__PKG_NS_RES_PATH__/tools/hello/greeting.txt   # hyphens kept
+└── test/clj/__PKG_NS_SRC_PATH__/
+```
+
+## Grow it
+
+- Add params to the profile in `options.clj` (and `default-profile` in `run`), keeping
+  keys kebab-case keywords to match template variables.
+- Add a stage: write a render fn in `tools.clj`, register it in `package.clj`'s
+  `tool-workflows`, and add it to the `build` pipeline.
+- Override any param at runtime with `BC_PAR_*` env vars (e.g. `BC_PAR_NAME=alice`).
+- Generated output lands in `.dist/` — never edit it as source.

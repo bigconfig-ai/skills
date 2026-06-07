@@ -1,0 +1,11 @@
+(ns __PKG_NAMESPACE__.options
+  "Package profiles and the active profile (`bb`)."
+  (:require
+   [big-config.render :as render]
+   [big-config.workflow :as workflow]))
+
+;; Active profile. Change this binding to switch profiles.
+(def bb
+  {::render/profile "__PKG_NAME__"
+   ::workflow/params {:package "__PKG_NAME__"
+                      :name "world"}})

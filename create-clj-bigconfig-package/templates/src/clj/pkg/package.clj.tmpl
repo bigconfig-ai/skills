@@ -1,0 +1,49 @@
+(ns __PKG_NAMESPACE__.package
+  "High-level package workflow and the `__PKG_NAME__ package` entry point."
+  (:require
+   [big-config :as bc]
+   [big-config.core :as core]
+   [big-config.step-fns :as step-fns]
+   [big-config.workflow :as workflow]
+   [__PKG_NAMESPACE__.params :as params]
+   [__PKG_NAMESPACE__.tools :as tools]
+   [__PKG_NAMESPACE__.validation :as validation]))
+
+(def step-fns [workflow/print-step-fn
+               (step-fns/->exit-step-fn ::end)
+               (step-fns/->print-error-step-fn ::end)])
+
+;; `build`: render every stage without applying anything.
+(def build
+  (workflow/->workflow* {:first-step ::start-build
+                         :last-step  ::end-build
+                         :pipeline   [::tools/hello ["render" params/opts-fn]]}))
+
+;; Register every tool stage so the pipeline can dispatch it by name.
+(def ^:private tool-workflows
+  {::tools/hello tools/hello})
+
+(when-let [register-workflow (ns-resolve 'big-config.workflow 'register-workflow)]
+  (run! (fn [[step f]]
+          (register-workflow step f))
+        tool-workflows))
+
+(defn __PKG_NAME__
+  [step-fns {:keys [::workflow/params] :as opts}]
+  (let [opts (->> opts
+                  (merge {::workflow/build-fn build
+                          ::workflow/validate-fn validation/validate})
+                  (workflow/merge-params [::tools/hello-opts] params))
+        wf (core/->workflow {:first-step ::start
+                             :wire-fn (fn [step step-fns]
+                                        (case step
+                                          ::start [(partial workflow/run-steps step-fns) ::end]
+                                          ::end [identity]))})]
+    (wf step-fns opts)))
+
+(defn __PKG_NAME__*
+  [args & [opts]]
+  (let [opts (merge (workflow/parse-args args)
+                    {::bc/env :shell}
+                    opts)]
+    (__PKG_NAME__ step-fns opts)))

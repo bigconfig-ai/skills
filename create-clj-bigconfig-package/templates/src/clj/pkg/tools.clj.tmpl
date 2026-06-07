@@ -1,0 +1,29 @@
+(ns __PKG_NAMESPACE__.tools
+  "Package-owned tool workflows. The `hello` stage renders one template."
+  (:require
+   [big-config :as bc]
+   [big-config.render :as render]
+   [big-config.step-fns :as step-fns]
+   [big-config.utils :refer [keyword->path]]
+   [big-config.workflow :as workflow]))
+
+(def step-fns [workflow/print-step-fn
+               (step-fns/->exit-step-fn ::workflow/end)
+               (step-fns/->print-error-step-fn ::workflow/end)])
+
+(defn hello
+  "Render the `hello` template directory into `.dist/`."
+  [step-fns opts]
+  (let [opts (workflow/prepare {::workflow/name ::hello
+                                ::render/templates [{:template (keyword->path ::hello)
+                                                     :overwrite true
+                                                     :transform [["."]]}]}
+                               opts)]
+    (workflow/run-steps step-fns opts)))
+
+(defn hello*
+  [args & [opts]]
+  (let [opts (merge (workflow/parse-args args)
+                    {::bc/env :shell}
+                    opts)]
+    (hello step-fns opts)))

@@ -1,0 +1,38 @@
+(ns __PKG_NAMESPACE__.package-test
+  (:require
+   [clojure.java.io :as io]
+   [clojure.java.shell :refer [sh]]
+   [clojure.string :as str]
+   [clojure.test :refer [deftest is]]
+   [__PKG_NAMESPACE__.validation :as validation]))
+
+(def ^:private profile
+  {:big-config.render/profile "__PKG_NAME__"
+   :big-config.workflow/params {:package "__PKG_NAME__" :name "world"}})
+
+(deftest validate-report-passes-for-complete-profile
+  (is (:ok? (validation/validate-report profile {}))))
+
+(deftest validate-report-flags-blank-or-placeholder-param
+  (let [result (validation/validate-report profile {"BC_PAR_NAME" "REPLACE_ME"})]
+    (is (not (:ok? result)))
+    (is (some #(str/includes? (:detail %) "name") (:errors result)))))
+
+(defn- find-file
+  [dir name]
+  (->> (file-seq (io/file dir))
+       (filter #(and (.isFile %) (= name (.getName %))))
+       first))
+
+(deftest package-build-renders-hello-template
+  (let [pkg-dir (System/getProperty "user.dir")
+        dist (io/file pkg-dir ".dist")]
+    (try
+      (let [{:keys [exit out err]} (sh "bb" "run" "package" "build" :dir pkg-dir)]
+        (is (zero? exit) (str "build failed\n" out "\n" err))
+        (let [greeting (find-file dist "greeting.txt")]
+          (is (some? greeting) "greeting.txt should be rendered under .dist")
+          (is (str/includes? (slurp greeting) "Hello, world!"))))
+      (finally
+        (when (.exists dist)
+          (run! io/delete-file (reverse (file-seq dist))))))))

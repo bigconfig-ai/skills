@@ -1,0 +1,30 @@
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+PKG_DIR = Path(__file__).resolve().parent.parent
+RUN = PKG_DIR / "run"
+
+
+def find(base: Path, name: str) -> Path | None:
+    for p in base.rglob(name):
+        if p.is_file():
+            return p
+    return None
+
+
+def test_package_build_renders_hello_template():
+    with tempfile.TemporaryDirectory(prefix="__PKG_NAME__-") as tmp:
+        res = subprocess.run(
+            [sys.executable, str(RUN), "package", "build"],
+            cwd=tmp,
+            text=True,
+            capture_output=True,
+        )
+        assert res.returncode == 0, f"build failed\nstdout:\n{res.stdout}\nstderr:\n{res.stderr}"
+        dist = Path(tmp) / ".dist"
+        assert dist.exists()
+        greeting = find(dist, "greeting.txt")
+        assert greeting is not None, "greeting.txt should be rendered under .dist"
+        assert "Hello, world!" in greeting.read_text()

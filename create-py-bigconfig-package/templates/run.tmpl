@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Run the __PKG_NAME__ CLI with a local default profile template.
+
+This file is copied by bc-pkg into the user's project directory, so keep the
+profile below user-editable and free of real credentials.
+"""
+from __future__ import annotations
+
+import site
+import sys
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parent
+
+
+def add_site_dir_first(path: Path) -> None:
+    before = list(sys.path)
+    site.addsitedir(str(path))
+    added = [p for p in sys.path if p not in before]
+    if str(path) in sys.path and str(path) not in added:
+        added.insert(0, str(path))
+    for p in reversed(added):
+        sys.path.remove(p)
+        sys.path.insert(0, p)
+
+
+for site_packages in [
+    *sorted((ROOT / ".venv" / "lib").glob("python*/site-packages"), reverse=True),
+    ROOT / ".venv" / "Lib" / "site-packages",
+]:
+    if site_packages.is_dir():
+        add_site_dir_first(site_packages)
+
+SRC = ROOT / "src"
+if SRC.is_dir():
+    sys.path.insert(0, str(SRC))
+
+from __PKG_MODULE__.cli import main  # noqa: E402
+
+DEFAULT_PROFILE: dict[str, Any] = {
+    "profile": "__PKG_NAME__",
+    "params": {
+        "package": "__PKG_NAME__",
+        "name": "world",
+    },
+}
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:], DEFAULT_PROFILE)

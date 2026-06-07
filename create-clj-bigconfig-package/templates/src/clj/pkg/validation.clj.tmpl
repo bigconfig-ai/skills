@@ -1,0 +1,54 @@
+(ns __PKG_NAMESPACE__.validation
+  "Pre-flight validation for the active profile. Pure report + workflow step."
+  (:require
+   [big-config :as bc]
+   [big-config.core :as core]
+   [big-config.render :as render]
+   [big-config.workflow :as workflow]
+   [clojure.string :as str]))
+
+(defn- blank-or-placeholder?
+  [v]
+  (or (nil? v)
+      (and (string? v)
+           (or (str/blank? v)
+               (str/includes? v "REPLACE_ME")))))
+
+(defn validate-report
+  "Pure: build the validation report for the given opts."
+  ([opts] (validate-report opts (System/getenv)))
+  ([opts env]
+   (let [opts    (workflow/read-bc-pars opts env)
+         profile (::render/profile opts)
+         params  (::workflow/params opts)
+         errors  (cond-> []
+                   (not (and (string? profile) (not (str/blank? profile))))
+                   (conj {:check :schema :detail "render/profile: must be a non-empty string"})
+
+                   (blank-or-placeholder? (:package params))
+                   (conj {:check :schema :detail "workflow/params → package: must be a real value (not blank or REPLACE_ME)"})
+
+                   (blank-or-placeholder? (:name params))
+                   (conj {:check :schema :detail "workflow/params → name: must be a real value (not blank or REPLACE_ME)"}))]
+     {:ok? (empty? errors) :errors errors})))
+
+(defn print-report
+  [result]
+  (if (:ok? result)
+    (println "All checks passed.")
+    (let [n (count (:errors result))]
+      (println (format "Validation failed (%d issue%s):" n (if (= 1 n) "" "s")))
+      (doseq [e (:errors result)]
+        (println (str "    - " (:detail e)))))))
+
+(defn validate
+  "big-config workflow step for `bb run package validate`."
+  [_step-fns opts]
+  (let [result (validate-report opts)]
+    (print-report result)
+    (merge opts
+           {::result result}
+           (if (:ok? result)
+             (core/ok)
+             {::bc/exit 1
+              ::bc/err "validation failed"}))))

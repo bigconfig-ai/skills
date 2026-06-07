@@ -1,0 +1,43 @@
+# __PKG_NAME__
+
+A minimal [BigConfig](https://www.bigconfig.ai) package, scaffolded from the
+`create-py-bigconfig-package` skill. It depends on the BigConfig Python SDK
+(`big-config`) and renders one template through a single `hello` stage.
+
+## Commands
+
+```bash
+uv sync
+uv run pytest -q
+uv run __PKG_NAME__ help               # run the CLI via the installed entry point
+uv run python run package validate
+uv run python run package build
+```
+
+## Layout
+
+```
+__PKG_NAME__/python/
+├── run                       # launcher entry point (copied by bc-pkg; safe defaults only)
+├── pyproject.toml            # one root manifest; ships src/__PKG_MODULE__ + src/resources
+├── src/
+│   ├── __PKG_MODULE__/
+│   │   ├── cli.py            # main(argv, opts) dispatcher
+│   │   ├── options.py        # profiles + active profile (`bb`)
+│   │   ├── params.py         # BC_PAR_* overrides -> opts
+│   │   ├── tools.py          # the `hello` render stage
+│   │   ├── validation.py     # pure validate report + workflow step
+│   │   ├── package.py        # validate/build verbs + __PKG_MODULE___star wrapper
+│   │   └── interop.py        # alias <-> namespaced-key bridge
+│   └── resources/__PKG_NS_PATH__/tools/hello/greeting.txt
+└── tests/
+```
+
+## Grow it
+
+- Add params to the profile in `options.py` (and `DEFAULT_PROFILE` in `run`), keeping
+  keys kebab-case to match template variables.
+- Add a stage: write a render function in `tools.py`, `register_workflow_step` it, and
+  add it to the `build` pipeline in `package.py`.
+- Override any param at runtime with `BC_PAR_*` env vars (e.g. `BC_PAR_NAME=alice`).
+- Generated output lands in `.dist/` — never edit it as source.

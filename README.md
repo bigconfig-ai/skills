@@ -9,11 +9,13 @@ a `SKILL.md` plus any supporting templates and reference material.
 | Skill | What it does |
 |---|---|
 | [`create-ts-bigconfig-package`](create-ts-bigconfig-package/SKILL.md) | Scaffold a new minimal, launcher-conformant TypeScript BigConfig package from bundled templates. |
+| [`create-py-bigconfig-package`](create-py-bigconfig-package/SKILL.md) | Scaffold a new minimal, launcher-conformant Python BigConfig package from bundled templates. |
+| [`create-clj-bigconfig-package`](create-clj-bigconfig-package/SKILL.md) | Scaffold a new minimal, launcher-conformant Clojure BigConfig package from bundled templates. |
 
 ## Repository layout
 
 ```
-skill/                                  # this repository
+skills/                                 # this repository
 ├── README.md                           # this index
 └── <skill-name>/                       # one directory per skill (named after the skill)
     ├── SKILL.md                        # frontmatter (name, description) + the procedure

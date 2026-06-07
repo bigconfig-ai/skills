@@ -1,0 +1,8 @@
+(ns __PKG_NAMESPACE__.params
+  "Parameter composition: apply BC_PAR_* env overrides to the threaded opts."
+  (:require
+   [big-config.workflow :as workflow]))
+
+;; Per-stage opts function: fold BC_PAR_* overrides into params.
+;; Grow this to extract params from earlier stages' outputs as you add stages.
+(def opts-fn workflow/read-bc-pars)

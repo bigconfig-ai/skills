@@ -1,0 +1,61 @@
+"""High-level package workflow and the ``__PKG_NAME__ package`` entry point."""
+from __future__ import annotations
+
+from big_config import ENV
+from big_config import workflow as bc_workflow
+from big_config.core import Opts, StepFn, workflow
+from big_config.step_fns import exit_step_fn, print_error_step_fn
+
+from . import tools as pkg_tools
+from .interop import PARAMS, sync_aliases, to_bc_opts
+from .params import opts_fn
+from .validation import validate
+
+START = "__PKG_NAMESPACE__.package/start"
+END = "__PKG_NAMESPACE__.package/end"
+PIPELINE_START = "__PKG_NAMESPACE__.package/start-build"
+PIPELINE_END = "__PKG_NAMESPACE__.package/end-build"
+
+step_fns: list[StepFn] = [bc_workflow.print_step_fn, exit_step_fn(END), print_error_step_fn(END)]
+
+# Register every tool stage so the pipeline can dispatch it by name.
+bc_workflow.register_workflow_step(pkg_tools.HELLO, pkg_tools.hello)
+
+# ``build``: render every stage without applying anything.
+build = bc_workflow.workflow_star(
+    {
+        "first_step": PIPELINE_START,
+        "last_step": PIPELINE_END,
+        "pipeline": [
+            pkg_tools.HELLO,
+            ["render", opts_fn],
+        ],
+    }
+)
+
+TOOL_OPTS_KEYS = [f"{pkg_tools.HELLO}-opts"]
+
+
+def __PKG_MODULE__(sfns: list[StepFn], opts: Opts) -> Opts:
+    """Run a validate / build workflow."""
+    opts = to_bc_opts(opts)
+    with_fns: Opts = {
+        bc_workflow.BUILD_FN: build,
+        bc_workflow.VALIDATE_FN: validate,
+        **opts,
+    }
+    merged = bc_workflow.merge_params(TOOL_OPTS_KEYS, opts.get(PARAMS) or {}, with_fns)
+
+    def wire(step: str, resolved_step_fns: list[StepFn]):
+        if step == START:
+            return (lambda o: bc_workflow.run_steps(resolved_step_fns, o)), END
+        return (lambda o: o), None
+
+    wf = workflow({"first_step": START, "wire_fn": wire})
+    return sync_aliases(wf(sfns, merged))
+
+
+def __PKG_MODULE___star(args: str | list[str], opts: Opts | None = None) -> Opts:
+    """CLI-ready package entry point."""
+    parsed = bc_workflow.parse_args(args)
+    return __PKG_MODULE__(step_fns, {**parsed, ENV: "shell", **to_bc_opts(opts or {})})

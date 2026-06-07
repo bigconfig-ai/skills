@@ -1,0 +1,14 @@
+#!/usr/bin/env bb
+
+(require '[big-config.render :as render]
+         '[big-config.workflow :as workflow]
+         '[__PKG_NAMESPACE__.cli :as cli])
+
+;; This file is copied by bc-pkg into the user's project directory, so keep the
+;; profile below user-editable and free of real credentials.
+(def default-profile
+  {::render/profile "__PKG_NAME__"
+   ::workflow/params {:package "__PKG_NAME__"
+                      :name "world"}})
+
+(cli/main* *command-line-args* default-profile)

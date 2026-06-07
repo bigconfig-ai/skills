@@ -1,0 +1,64 @@
+(ns __PKG_NAMESPACE__.cli
+  (:require
+   [__PKG_NAMESPACE__.options :as options]
+   [__PKG_NAMESPACE__.package :as package]
+   [__PKG_NAMESPACE__.params :as params]
+   [__PKG_NAMESPACE__.tools :as tools]))
+
+(def help-text
+  "Usage: bb run <command> [args...]
+
+Commands:
+  package <step>...  Run package lifecycle steps for the active profile.
+                       bb run package validate
+                       bb run package build
+  validate           Shortcut for `bb run package validate`.
+  hello <args>       Render the hello tool. e.g. bb run hello render
+
+Notes:
+  * When launched through `run`, the active profile comes from that script;
+    otherwise it defaults to `bb` in __PKG_NAMESPACE__.options.
+  * Any param can be overridden with BC_PAR_* environment variables.")
+
+(def package-commands #{"validate" "build"})
+
+(defn- die!
+  [& lines]
+  (binding [*out* *err*]
+    (doseq [line lines]
+      (println line)))
+  (System/exit 1))
+
+(defn main*
+  ([args]
+   (main* args options/bb))
+  ([args opts]
+   (let [args (mapv str args)
+         command (first args)
+         rest-args (if (seq args) (subvec args 1) [])]
+     (cond
+       (or (nil? command) (#{"help" "--help" "-h"} command))
+       (println help-text)
+
+       (= command "validate")
+       (if (seq rest-args)
+         (die! "Error: bb run validate does not accept arguments." "Usage: bb run validate")
+         (package/__PKG_NAME__* ["validate"] opts))
+
+       (= command "package")
+       (if (seq rest-args)
+         (package/__PKG_NAME__* rest-args opts)
+         (die! "Missing package step." "Usage: bb run package <validate|build>..."))
+
+       (contains? package-commands command)
+       (die! (str "Use `bb run package " command "`.") "" help-text)
+
+       (= command "hello")
+       (tools/hello* rest-args (params/opts-fn opts))
+
+       :else
+       (die! (str "Unknown command: " command) "" help-text)))))
+
+(defn -main
+  [& args]
+  (main* args))

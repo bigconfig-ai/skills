@@ -1,0 +1,35 @@
+"""Package profiles and the active profile (``bb``)."""
+from __future__ import annotations
+
+from typing import Any
+
+from big_config.core import Opts
+
+from .interop import PARAMS, PROFILE, sync_aliases
+
+Profile = dict[str, Any]
+
+
+def compose(*layers: Profile) -> Opts:
+    """Merge profile layers left-to-right; params merge shallowly."""
+    params: dict[str, Any] = {}
+    profile: str | None = None
+    for layer in layers:
+        if "profile" in layer:
+            profile = layer["profile"]
+        params = {**params, **(layer.get("params") or {})}
+    return sync_aliases({PROFILE: profile, PARAMS: params})
+
+
+base: Profile = {
+    "profile": "__PKG_NAME__",
+    "params": {
+        "package": "__PKG_NAME__",
+        "name": "world",
+    },
+}
+
+__PKG_MODULE__: Opts = compose(base)
+
+# Active profile. Change this binding to switch profiles.
+bb: Opts = __PKG_MODULE__
