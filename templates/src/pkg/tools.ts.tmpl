@@ -1,0 +1,59 @@
+/** Package-owned tool workflows. The `hello` stage renders one template. */
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  ENV,
+  RENDER_TEMPLATES,
+  WF_NAME,
+  type Opts,
+  type StepFn,
+} from "big-config";
+import { createExitStepFn, createPrintErrorStepFn } from "big-config/step-fns";
+import { keywordToPath } from "big-config/utils";
+import { parseArgs, prepare, printStepFn, runSteps } from "big-config/workflow";
+
+const END = "big-config.workflow/end";
+
+export const stepFns: StepFn[] = [
+  printStepFn,
+  createExitStepFn(END),
+  createPrintErrorStepFn(END),
+];
+
+export const HELLO = "__PKG_NAMESPACE__.tools/hello";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** Resolve a packaged template directory from its namespaced name. */
+function templatePath(template: string): string {
+  const rel = keywordToPath(template);
+  const candidates = [
+    join(HERE, "..", "resources", rel),
+    join(HERE, "..", "..", "resources", rel),
+    join(HERE, "..", "..", "..", "src", "resources", rel),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? rel;
+}
+
+/** Render the `hello` template directory into `.dist/`. */
+export function hello(sfns: StepFn[], opts: Opts): Opts {
+  const prepared = prepare(
+    {
+      [WF_NAME]: HELLO,
+      [RENDER_TEMPLATES]: [
+        {
+          template: templatePath(HELLO),
+          overwrite: true,
+          transform: [["."]],
+        },
+      ],
+    },
+    opts,
+  );
+  return runSteps(sfns, prepared);
+}
+
+export function helloStar(args: string | string[], opts: Opts = {}): Opts {
+  return hello(stepFns, { ...parseArgs(args), [ENV]: "shell", ...opts });
+}

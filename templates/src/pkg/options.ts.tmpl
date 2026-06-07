@@ -1,0 +1,32 @@
+/** Package profiles and the active profile (`bb`). */
+import type { Opts } from "big-config";
+import { PARAMS, PROFILE, syncAliases } from "./interop.js";
+
+export interface Profile {
+  profile?: string;
+  params: Record<string, any>;
+}
+
+/** Merge profile layers left-to-right into a big-config opts map. */
+function compose(...layers: Profile[]): Opts {
+  let params: Record<string, any> = {};
+  let profile: string | undefined;
+  for (const layer of layers) {
+    if (layer.profile !== undefined) profile = layer.profile;
+    params = { ...params, ...layer.params };
+  }
+  return syncAliases({ [PROFILE]: profile, [PARAMS]: params });
+}
+
+const base: Profile = {
+  profile: "__PKG_NAME__",
+  params: {
+    package: "__PKG_NAME__",
+    name: "world",
+  },
+};
+
+export const __PKG_VAR__: Opts = compose(base);
+
+/** Active profile. Change this binding to switch profiles. */
+export const bb: Opts = __PKG_VAR__;

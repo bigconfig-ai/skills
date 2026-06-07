@@ -1,0 +1,70 @@
+/** High-level package workflow and the `__PKG_NAME__ package` entry point. */
+import {
+  ENV,
+  WF_BUILD_FN,
+  WF_PARAMS,
+  WF_VALIDATE_FN,
+  type Opts,
+  type StepFn,
+} from "big-config";
+import { createWorkflow } from "big-config/core";
+import { createExitStepFn, createPrintErrorStepFn } from "big-config/step-fns";
+import {
+  createWorkflowStar,
+  mergeParams,
+  parseArgs,
+  printStepFn,
+  registerWorkflow,
+  runSteps,
+} from "big-config/workflow";
+import { syncAliases, toBcOpts } from "./interop.js";
+import { optsFn } from "./params.js";
+import * as tools from "./tools.js";
+import { validate } from "./validation.js";
+
+const START = "__PKG_NAMESPACE__.package/start";
+const END = "__PKG_NAMESPACE__.package/end";
+const PIPELINE_START = "__PKG_NAMESPACE__.package/start-build";
+const PIPELINE_END = "__PKG_NAMESPACE__.package/end-build";
+
+export const stepFns: StepFn[] = [
+  printStepFn,
+  createExitStepFn(END),
+  createPrintErrorStepFn(END),
+];
+
+// Register every tool stage so the pipeline can dispatch it by name.
+registerWorkflow(tools.HELLO, tools.hello as any);
+
+/** `build`: render every stage without applying anything. */
+export const build = createWorkflowStar({
+  firstStep: PIPELINE_START,
+  lastStep: PIPELINE_END,
+  pipeline: [
+    tools.HELLO, ["render", optsFn],
+  ],
+});
+
+const TOOL_OPTS_KEYS = [`${tools.HELLO}-opts`];
+
+export function __PKG_VAR__(sfns: StepFn[], opts0: Opts): Opts {
+  const opts = toBcOpts(opts0);
+  const withFns: Opts = {
+    [WF_BUILD_FN]: build,
+    [WF_VALIDATE_FN]: validate,
+    ...opts,
+  };
+  const merged = mergeParams(TOOL_OPTS_KEYS, opts[WF_PARAMS] ?? {}, withFns);
+  const wf = createWorkflow({
+    firstStep: START,
+    wireFn: (step, resolvedStepFns) =>
+      step === START
+        ? [(o) => runSteps(resolvedStepFns, o), END]
+        : [(o) => o, undefined],
+  });
+  return syncAliases(wf(sfns, merged));
+}
+
+export function __PKG_VAR__Star(args: string | string[], opts: Opts = {}): Opts {
+  return __PKG_VAR__(stepFns, { ...parseArgs(args), [ENV]: "shell", ...toBcOpts(opts) });
+}

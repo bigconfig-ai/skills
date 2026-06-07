@@ -1,0 +1,41 @@
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const pkgDir = resolve(".");
+
+function run(cmd: string, args: string[], cwd: string): void {
+  const res = spawnSync(cmd, args, { cwd, encoding: "utf8", env: process.env });
+  expect(res.status, `${cmd} ${args.join(" ")} failed\nstdout:\n${res.stdout}\nstderr:\n${res.stderr}`).toBe(0);
+}
+
+function find(base: string, name: string): string | null {
+  for (const entry of readdirSync(base)) {
+    const p = join(base, entry);
+    if (statSync(p).isDirectory()) {
+      const hit = find(p, name);
+      if (hit) return hit;
+    } else if (entry === name) {
+      return p;
+    }
+  }
+  return null;
+}
+
+describe("__PKG_NAME__ package build", () => {
+  it("renders the hello template into .dist", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "__PKG_NAME__-"));
+    try {
+      run("node", [join(pkgDir, "dist/src/cli.js"), "package", "build"], tmp);
+      const dist = join(tmp, ".dist");
+      expect(existsSync(dist)).toBe(true);
+      const greeting = find(dist, "greeting.txt");
+      expect(greeting, "greeting.txt should be rendered under .dist").not.toBeNull();
+      expect(readFileSync(greeting!, "utf8")).toContain("Hello, world!");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});

@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+/** Run the __PKG_NAME__ CLI with a local default profile template.
+ *
+ * This file is copied by bc-pkg into the user's project directory, so keep the
+ * profile below user-editable and free of real credentials.
+ */
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const ROOT = dirname(fileURLToPath(import.meta.url));
+
+const DEFAULT_PROFILE = {
+  profile: "__PKG_NAME__",
+  params: {
+    package: "__PKG_NAME__",
+    name: "world",
+  },
+};
+
+const localCli = join(ROOT, "dist", "src", "cli.js");
+const cliModule = existsSync(localCli) ? pathToFileURL(localCli).href : "__PKG_NAME__/dist/src/cli.js";
+const { main } = await import(cliModule);
+
+main(process.argv.slice(2), DEFAULT_PROFILE);

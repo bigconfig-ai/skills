@@ -1,0 +1,63 @@
+#!/usr/bin/env node
+/** Command-line entry point. */
+import { realpathSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Opts } from "big-config";
+import { bb } from "./__PKG_NAME__/options.js";
+import { __PKG_VAR__Star } from "./__PKG_NAME__/package.js";
+import { helloStar } from "./__PKG_NAME__/tools.js";
+
+const HELP = `Usage: __PKG_NAME__ <command> [args...]
+
+Commands:
+  package <step>...  Run package lifecycle steps for the active profile.
+                       __PKG_NAME__ package validate
+                       __PKG_NAME__ package build
+  validate           Shortcut for \`__PKG_NAME__ package validate\`.
+  hello <args>       Render the hello tool. e.g. __PKG_NAME__ hello render
+
+Notes:
+  * When launched through \`run\`, the active profile comes from that script;
+    otherwise it defaults to \`bb\` in src/__PKG_NAME__/options.ts.
+  * Any param can be overridden with BC_PAR_* environment variables.`;
+
+export function main(argv: string[], opts: Opts = bb): void {
+  const [command, ...rest] = argv;
+  switch (command) {
+    case undefined:
+    case "help":
+    case "--help":
+    case "-h":
+      console.log(HELP);
+      return;
+    case "package":
+      __PKG_VAR__Star(rest, opts);
+      return;
+    case "validate":
+      __PKG_VAR__Star(["validate"], opts);
+      return;
+    case "hello":
+      helloStar(rest, opts);
+      return;
+    default:
+      console.error(`Unknown command: ${command}\n`);
+      console.error(HELP);
+      process.exit(1);
+  }
+}
+
+function isMainModule(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  const modulePath = fileURLToPath(import.meta.url);
+  try {
+    return realpathSync(entry) === realpathSync(modulePath);
+  } catch {
+    return resolve(entry) === modulePath;
+  }
+}
+
+if (isMainModule()) {
+  main(process.argv.slice(2));
+}

@@ -1,0 +1,19 @@
+import { describe, expect, it } from "vitest";
+import { validateReport } from "../src/__PKG_NAME__/validation.js";
+
+const profile = {
+  "big-config.render/profile": "__PKG_NAME__",
+  "big-config.workflow/params": { package: "__PKG_NAME__", name: "world" },
+};
+
+describe("validateReport", () => {
+  it("passes for a complete profile", () => {
+    expect(validateReport(profile, {}).ok).toBe(true);
+  });
+
+  it("flags a blank or placeholder param", () => {
+    const r = validateReport(profile, { BC_PAR_NAME: "REPLACE_ME" });
+    expect(r.ok).toBe(false);
+    expect(r.errors.some((e) => e.detail.includes("name"))).toBe(true);
+  });
+});
