@@ -114,5 +114,6 @@ pipeline in `package.ts`, override params with `BC_PAR_*`) and how to make it
 - Profile/param keys stay kebab-case strings matching template variable names.
 - Never write real credentials; placeholders only.
 - `.dist/` is generated output — never edit it as source.
-- This skill lives in a top-level `skill/` folder per project convention; to make it
-  an auto-discovered slash command, also place/symlink it under `.claude/skills/`.
+- This skill lives in its own directory inside the `skill/` skills repository (see the
+  repo `README.md`). To make it an auto-discovered slash command, place or symlink this
+  `create-ts-bigconfig-package/` directory under `.claude/skills/`.
